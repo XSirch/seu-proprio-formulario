@@ -106,31 +106,17 @@
    - Frontend: http://localhost:5173
    - Backend API: http://localhost:3001/api
 
-### Docker (Produção)
+### Docker (Desenvolvimento)
 
-**Build da imagem fullstack:**
-```bash
-docker build -t christianoccruz/spf:latest -t christianoccruz/spf:v1.0 .
-```
-
-**Push para Docker Hub:**
-```bash
-docker push christianoccruz/spf:latest
-docker push christianoccruz/spf:v1.0
-```
-
-**Executar com Docker Compose (desenvolvimento):**
+**Executar com Docker Compose:**
 ```bash
 docker-compose up -d
 ```
 
-**Executar imagem fullstack:**
-```bash
-docker run -p 3001:3001 \
-  -e DATABASE_URL=postgres://user:pass@db:5432/form \
-  -e JWT_SECRET=your_secret \
-  christianoccruz/spf:latest
-```
+Isso iniciará:
+- Frontend (Vite) na porta 5173
+- Backend (Express) na porta 3001
+- PostgreSQL na porta 5432
 
 ## 📁 Estrutura do Projeto
 
