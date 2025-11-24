@@ -5,7 +5,6 @@ Backend Node.js + Express + PostgreSQL para o aplicativo de criação de formul�
 ## Pré-requisitos
 
 - Node.js 18+ instalado
-- Acesso ao banco de dados PostgreSQL em: `postgres://postgres:Sirch2006@191.101.18.5:32766/form?sslmode=disable`
 
 ## Instalação
 
