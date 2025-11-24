@@ -1,0 +1,57 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: spf_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: form
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - spf-net
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    # Para deploy, você pode substituir build por image: "christianoccruz/seu-proprio-formulario-backend:latest"
+    container_name: spf_backend
+    restart: unless-stopped
+    environment:
+      # URL usada por server/db.js
+      DATABASE_URL: postgres://postgres:postgres@db:5432/form
+      JWT_SECRET: ${JWT_SECRET:-spf-secret-key-2024}
+      PORT: 3001
+    depends_on:
+      - db
+    networks:
+      - spf-net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Para deploy, você pode substituir build por image: "christianoccruz/seu-proprio-formulario-frontend:latest"
+    container_name: spf_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      # Ajuste se o backend estiver em outro host/porta no ambiente de produção
+      VITE_API_BASE_URL: http://backend:3001/api
+    depends_on:
+      - backend
+    networks:
+      - spf-net
+
+networks:
+  spf-net:
+    driver: bridge
+
+volumes:
+  db-data:
+

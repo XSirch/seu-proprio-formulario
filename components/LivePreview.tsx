@@ -593,7 +593,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({
       </div>
       
       <div className="p-6 text-center text-xs opacity-40 font-mono uppercase tracking-widest">
-          Powered by FormFlow AI
+          Powered by SPF
       </div>
     </div>
   );

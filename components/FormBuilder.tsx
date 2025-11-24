@@ -20,6 +20,7 @@ interface FormBuilderProps {
   initialTitle: string;
   initialTheme?: FormTheme;
   initialLogo?: string;
+  formId?: string; // ID do formulário se já foi salvo
   onSave: (title: string, fields: FormField[], theme?: FormTheme, logoUrl?: string) => void;
   onBack: () => void;
   onPreviewSubmit: (answers: Record<string, any>) => void;
@@ -256,12 +257,13 @@ const THEME_PRESETS: SavedPreset[] = [
     { name: 'Romance', theme: { backgroundColor: '#4c0519', primaryColor: '#fb7185', textColor: '#fff1f2' } }, // rose-950, rose-400
 ];
 
-export const FormBuilder: React.FC<FormBuilderProps> = ({ 
-  initialFields, 
-  initialTitle, 
+export const FormBuilder: React.FC<FormBuilderProps> = ({
+  initialFields,
+  initialTitle,
   initialTheme,
   initialLogo,
-  onSave, 
+  formId,
+  onSave,
   onBack,
   onPreviewSubmit,
   onSignup,
@@ -272,12 +274,22 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({
   const [formTitle, setFormTitle] = useState(initialTitle);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [viewMode, setViewMode] = useState<'editor' | 'flow' | 'design'>('editor');
-  
+  const [copiedLink, setCopiedLink] = useState(false);
+
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
 
   // Design State
   const [theme, setTheme] = useState<FormTheme>(initialTheme || THEME_PRESETS[0].theme);
+
+  const handleCopyLink = () => {
+    if (!formId) return;
+    const url = `${window.location.origin}/form/${formId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    });
+  };
   const [logoUrl, setLogoUrl] = useState<string | undefined>(initialLogo);
   
   // Custom Preset State
@@ -424,14 +436,33 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({
         </div>
 
         <div className="flex gap-3">
-          <button 
+          {formId && (
+            <button
+              onClick={handleCopyLink}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-200 border border-slate-700 rounded-lg hover:bg-slate-700 transition-all hover:shadow-lg text-sm font-medium"
+              title="Compartilhar formulário"
+            >
+              {copiedLink ? (
+                <>
+                  <Icons.Check className="w-4 h-4 text-green-400" />
+                  <span className="text-green-400">Copiado!</span>
+                </>
+              ) : (
+                <>
+                  <Icons.Link className="w-4 h-4" />
+                  Compartilhar
+                </>
+              )}
+            </button>
+          )}
+          <button
             onClick={() => setIsPreviewMode(true)}
             className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-200 border border-slate-700 rounded-lg hover:bg-slate-700 transition-all hover:shadow-lg text-sm font-medium"
           >
             <Icons.Play className="w-4 h-4" />
             Visualizar
           </button>
-          <button 
+          <button
             onClick={() => onSave(formTitle, fields, theme, logoUrl)}
             className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-500 transition-all text-sm font-medium shadow-brand-500/20 shadow-lg border border-brand-500/50"
           >

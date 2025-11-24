@@ -1,10 +1,12 @@
 
 import React, { useState } from 'react';
 import { Icons } from './Icons';
+import { User } from '../types';
+import * as api from '../services/api';
 
 interface AuthPageProps {
   type: 'login' | 'signup';
-  onAuthSuccess: (user: { name: string; email: string }) => void;
+  onAuthSuccess: (user: User) => void;
   onSwitchMode: (mode: 'login' | 'signup') => void;
   onBack: () => void;
   pendingXp?: number;
@@ -15,19 +17,26 @@ export const AuthPage: React.FC<AuthPageProps> = ({ type, onAuthSuccess, onSwitc
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
 
-    // Mock Authentication Delay
-    setTimeout(() => {
-        setIsLoading(false);
-        onAuthSuccess({
-            name: name || (email.split('@')[0]),
-            email: email
-        });
-    }, 1500);
+    try {
+      if (type === 'signup') {
+        const { user } = await api.signup(name, email, password, pendingXp || 0);
+        onAuthSuccess(user);
+      } else {
+        const { user } = await api.login(email, password);
+        onAuthSuccess(user);
+      }
+    } catch (err: any) {
+      console.error('Auth error:', err);
+      setError(err.message || 'Falha na autenticação');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -45,7 +54,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ type, onAuthSuccess, onSwitc
         <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-8 relative z-10 animate-scale-in">
             
             {/* Bonus XP Banner */}
-            {pendingXp && pendingXp > 0 && type === 'signup' && (
+            {(pendingXp ?? 0) > 0 && type === 'signup' && (
                 <div className="mb-6 bg-yellow-500/20 border border-yellow-500/50 rounded-xl p-4 flex items-center gap-3 animate-bounce-short">
                     <div className="p-2 bg-yellow-500 rounded-full text-yellow-900">
                         <Icons.Sparkles className="w-5 h-5" />
@@ -68,6 +77,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ type, onAuthSuccess, onSwitc
                     {type === 'login' ? 'Entre para gerenciar seus formulários.' : 'Comece a criar formulários mágicos hoje.'}
                 </p>
             </div>
+
+            {error && (
+                <div className="mb-4 bg-red-500/20 border border-red-500/50 rounded-lg p-3 flex items-center gap-2 text-red-400 text-sm">
+                    <Icons.AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>{error}</span>
+                </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
                 {type === 'signup' && (

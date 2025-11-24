@@ -16,7 +16,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onLogin }) =>
             <div className="w-10 h-10 bg-gradient-to-br from-brand-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
                 <Icons.Sparkles className="w-6 h-6" />
             </div>
-            <span className="text-xl font-display font-bold">FormFlow AI</span>
+            <span className="text-xl font-display font-bold">SPF</span>
         </div>
         <div className="flex items-center gap-4">
             <button 
@@ -35,7 +35,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onLogin }) =>
       </nav>
 
       {/* Hero Section */}
-      <main className="flex-1 flex flex-col items-center justify-center text-center px-6 py-20 relative overflow-hidden">
+      <main className="flex-1 flex flex-col items-center justify-center text-center px-6 py-16 md:py-24 relative">
         
         {/* Abstract Background */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
@@ -51,10 +51,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onLogin }) =>
             
             <h1 className="text-5xl md:text-7xl font-display font-bold leading-tight tracking-tight">
                 Crie formulários <br/>
-                <span className="bg-gradient-to-r from-brand-400 via-blue-400 to-purple-500 bg-clip-text text-transparent">Mágicos com IA</span>
+                <span className="text-white">Mágicos com IA</span>
             </h1>
             
-            <p className="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
                 Transforme pesquisas entediantes em conversas interativas. Utilize inteligência artificial para gerar insights poderosos e aumente suas taxas de resposta com gamificação.
             </p>
 
@@ -68,9 +68,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onLogin }) =>
                         Começar Gratuitamente <Icons.Rocket className="w-5 h-5" />
                     </span>
                 </button>
-                <button className="px-8 py-4 bg-slate-900 border border-slate-700 rounded-xl font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors">
-                    Ver Demonstração
-                </button>
             </div>
 
             {/* Feature Pills */}
@@ -80,28 +77,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onLogin }) =>
                         <Icons.Brain className="w-6 h-6" />
                     </div>
                     <h3 className="font-bold text-white mb-2">IA Integrada</h3>
-                    <p className="text-sm text-slate-400">Geração automática de relatórios de BI e sugestões de melhoria para suas perguntas.</p>
+                    <p className="text-sm text-slate-300">Geração automática de relatórios de BI e sugestões de melhoria para suas perguntas.</p>
                 </div>
                 <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 backdrop-blur-sm">
                     <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center text-purple-400 mb-4">
                         <Icons.Sparkles className="w-6 h-6" />
                     </div>
                     <h3 className="font-bold text-white mb-2">Gamificação</h3>
-                    <p className="text-sm text-slate-400">Aumente o engajamento com XP, barras de progresso e animações fluidas.</p>
+                    <p className="text-sm text-slate-300">Aumente o engajamento com XP, barras de progresso e animações fluidas.</p>
                 </div>
                 <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 backdrop-blur-sm">
                     <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center text-green-400 mb-4">
                         <Icons.BarChart className="w-6 h-6" />
                     </div>
                     <h3 className="font-bold text-white mb-2">Insights Reais</h3>
-                    <p className="text-sm text-slate-400">Dashboards automáticos que transformam dados brutos em decisões estratégicas.</p>
+                    <p className="text-sm text-slate-300">Dashboards automáticos que transformam dados brutos em decisões estratégicas.</p>
                 </div>
             </div>
         </div>
       </main>
 
-      <footer className="py-8 text-center text-slate-600 text-sm border-t border-slate-900 bg-slate-950 z-10">
-        &copy; {new Date().getFullYear()} FormFlow AI. Todos os direitos reservados.
+      <footer className="py-8 text-center text-slate-500 text-sm border-t border-slate-900 bg-slate-950 z-10">
+        &copy; {new Date().getFullYear()} SPF - Seu Próprio Formulário. Todos os direitos reservados.
       </footer>
     </div>
   );

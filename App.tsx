@@ -1,97 +1,125 @@
 
-import React, { useState } from 'react';
-import { Form, Submission, INITIAL_FIELDS, FormField, User, FormTheme, calculateLevel } from './types';
+import React, { useState, useEffect } from 'react';
+import { Form, Submission, INITIAL_FIELDS, FormField, User, FormTheme } from './types';
 import { HomePage } from './components/HomePage';
 import { FormBuilder } from './components/FormBuilder';
 import { ResponseViewer } from './components/ResponseViewer';
 import { LandingPage } from './components/LandingPage';
 import { AuthPage } from './components/AuthPage';
+import { PublicFormView } from './components/PublicFormView';
+import { SettingsPage } from './components/SettingsPage';
+import * as api from './services/api';
 
-// Mock initial data
-const MOCK_FORMS: Form[] = [
-  {
-    id: '1',
-    title: 'Satisfação do Cliente',
-    createdAt: new Date().toISOString(),
-    responseCount: 3,
-    fields: INITIAL_FIELDS,
-    theme: {
-        backgroundColor: '#0f172a',
-        primaryColor: '#14b8a6',
-        textColor: '#ffffff'
-    }
-  },
-  {
-      id: '2',
-      title: 'Feedback de Funcionários',
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-      responseCount: 0,
-      fields: []
-  }
-];
-
-const MOCK_SUBMISSIONS: Submission[] = [
-    {
-        id: '101',
-        formId: '1',
-        submittedAt: new Date(Date.now() - 3600000).toISOString(),
-        answers: {
-            '1': 'Alice Wonderland',
-            '2': 5
-        }
-    },
-    {
-        id: '102',
-        formId: '1',
-        submittedAt: new Date(Date.now() - 7200000).toISOString(),
-        answers: {
-            '1': 'Bob Builder',
-            '2': 4
-        }
-    },
-     {
-        id: '103',
-        formId: '1',
-        submittedAt: new Date(Date.now() - 10000000).toISOString(),
-        answers: {
-            '1': 'Charlie Bucket',
-            '2': 5
-        }
-    }
-];
-
-type ViewState = 'landing' | 'auth-login' | 'auth-signup' | 'home' | 'builder' | 'responses';
+type ViewState = 'landing' | 'auth-login' | 'auth-signup' | 'home' | 'builder' | 'responses' | 'public-form' | 'settings';
 
 function App() {
   const [view, setView] = useState<ViewState>('landing');
   const [user, setUser] = useState<User | null>(null);
 
-  const [forms, setForms] = useState<Form[]>(MOCK_FORMS);
-  const [submissions, setSubmissions] = useState<Submission[]>(MOCK_SUBMISSIONS);
-  
+  const [forms, setForms] = useState<Form[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+
   const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
   const [pendingXp, setPendingXp] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [publicFormId, setPublicFormId] = useState<string | null>(null);
 
   // Helper to get current form
   const selectedForm = forms.find(f => f.id === selectedFormId);
 
+  // Check for public form route on mount
+  useEffect(() => {
+    const path = window.location.pathname;
+    const formMatch = path.match(/^\/form\/(\d+)$/);
+
+    if (formMatch) {
+      const formId = formMatch[1];
+      setPublicFormId(formId);
+      setView('public-form');
+      return;
+    }
+
+    // Check for existing auth token
+    const token = api.getAuthToken();
+    if (token) {
+      // Token exists, try to load user data
+      loadUserData();
+    }
+  }, []);
+
+  // Load user forms when user logs in
+  useEffect(() => {
+    if (user && view === 'home') {
+      loadForms();
+    }
+  }, [user, view]);
+
+  // Load submissions when viewing responses
+  useEffect(() => {
+    if (selectedFormId && view === 'responses') {
+      loadSubmissions(selectedFormId);
+    }
+  }, [selectedFormId, view]);
+
+  const loadUserData = async () => {
+    try {
+      setLoading(true);
+      const [userData, formsData] = await Promise.all([
+        api.getCurrentUser(),
+        api.getForms(),
+      ]);
+      setUser(userData);
+      setForms(formsData);
+      setView('home');
+    } catch (err) {
+      console.error('Failed to load user data:', err);
+      api.clearAuthToken();
+      setUser(null);
+      setView('landing');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadForms = async () => {
+    try {
+      setLoading(true);
+      const formsData = await api.getForms();
+      setForms(formsData);
+    } catch (err) {
+      console.error('Failed to load forms:', err);
+      setError('Falha ao carregar formulários');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSubmissions = async (formId: string) => {
+    try {
+      setLoading(true);
+      const submissionsData = await api.getSubmissions(formId);
+      setSubmissions(submissionsData);
+    } catch (err) {
+      console.error('Failed to load submissions:', err);
+      setError('Falha ao carregar respostas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // --- Auth Actions ---
-  const handleLoginSuccess = (userData: { name: string; email: string }) => {
-      const initialXp = pendingXp > 0 ? pendingXp : 500; // Bonus for signup if no pending XP
-      setUser({
-          id: 'u-123',
-          name: userData.name,
-          email: userData.email,
-          avatar: '',
-          xp: initialXp,
-          level: calculateLevel(initialXp)
-      });
-      setPendingXp(0); // Clear pending
+  const handleLoginSuccess = (userData: User) => {
+      setUser(userData);
+      setPendingXp(0);
       setView('home');
   };
 
   const handleLogout = () => {
+      api.clearAuthToken();
       setUser(null);
+      setForms([]);
+      setSubmissions([]);
       setView('landing');
   };
 
@@ -111,44 +139,52 @@ function App() {
     setView('responses');
   };
 
-  const handleDeleteForm = (id: string) => {
+  const handleDeleteForm = async (id: string) => {
       if(window.confirm('Tem certeza que deseja excluir este formulário?')) {
-          setForms(prev => prev.filter(f => f.id !== id));
+          try {
+              setLoading(true);
+              await api.deleteForm(id);
+              setForms(prev => prev.filter(f => f.id !== id));
+          } catch (err) {
+              console.error('Failed to delete form:', err);
+              setError('Falha ao excluir formulário');
+          } finally {
+              setLoading(false);
+          }
       }
   };
 
-  const handleSaveForm = (title: string, fields: FormField[], theme?: FormTheme, logoUrl?: string) => {
-    if (selectedFormId) {
-      // Update existing
-      setForms(prev => prev.map(f => f.id === selectedFormId ? { ...f, title, fields, theme, logoUrl } : f));
-    } else {
-      // Create new
-      const newForm: Form = {
-        id: Date.now().toString(),
-        title: title || 'Formulário Sem Título',
-        fields,
-        theme,
-        logoUrl,
-        createdAt: new Date().toISOString(),
-        responseCount: 0
-      };
-      setForms(prev => [newForm, ...prev]);
-    }
-    setView('home');
-  };
-
-  const handlePreviewSubmit = (answers: Record<string, any>) => {
+  const handleSaveForm = async (title: string, fields: FormField[], theme?: FormTheme, logoUrl?: string) => {
+    try {
+      setLoading(true);
       if (selectedFormId) {
-          const newSubmission: Submission = {
-              id: Date.now().toString(),
-              formId: selectedFormId,
-              submittedAt: new Date().toISOString(),
-              answers
-          };
-          setSubmissions(prev => [newSubmission, ...prev]);
-          setForms(prev => prev.map(f => f.id === selectedFormId ? { ...f, responseCount: f.responseCount + 1} : f));
+        // Update existing
+        const updatedForm = await api.updateForm(selectedFormId, title, fields, theme, logoUrl);
+        setForms(prev => prev.map(f => f.id === selectedFormId ? updatedForm : f));
+      } else {
+        // Create new
+        const newForm = await api.createForm(title, fields, theme, logoUrl);
+        setForms(prev => [newForm, ...prev]);
       }
-      console.log("Preview submission:", answers);
+      setView('home');
+    } catch (err) {
+      console.error('Failed to save form:', err);
+      setError('Falha ao salvar formulário');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePreviewSubmit = async (answers: Record<string, any>) => {
+      if (selectedFormId) {
+          try {
+              const newSubmission = await api.createSubmission(selectedFormId, answers);
+              setSubmissions(prev => [newSubmission, ...prev]);
+              setForms(prev => prev.map(f => f.id === selectedFormId ? { ...f, responseCount: f.responseCount + 1} : f));
+          } catch (err) {
+              console.error('Failed to submit form:', err);
+          }
+      }
   }
 
   const handleSignupFromPreview = (earnedXp: number) => {
@@ -158,10 +194,15 @@ function App() {
 
   // --- Router Logic ---
 
+  // Public form view (no authentication required)
+  if (view === 'public-form' && publicFormId) {
+    return <PublicFormView formId={publicFormId} />;
+  }
+
   if (!user) {
       if (view === 'auth-login' || view === 'auth-signup') {
           return (
-              <AuthPage 
+              <AuthPage
                   type={view === 'auth-login' ? 'login' : 'signup'}
                   pendingXp={pendingXp}
                   onAuthSuccess={handleLoginSuccess}
@@ -172,7 +213,7 @@ function App() {
       }
       // Default fallback for unauthenticated is Landing
       return (
-        <LandingPage 
+        <LandingPage
             onStart={() => setView('auth-signup')}
             onLogin={() => setView('auth-login')}
         />
@@ -180,6 +221,15 @@ function App() {
   }
 
   // Authenticated Routes
+  if (view === 'settings' && user) {
+    return (
+      <SettingsPage
+        user={user}
+        onBack={() => setView('home')}
+      />
+    );
+  }
+
   if (view === 'builder') {
     return (
       <FormBuilder
@@ -187,6 +237,7 @@ function App() {
         initialTitle={selectedForm ? selectedForm.title : 'Meu Novo Formulário'}
         initialTheme={selectedForm?.theme}
         initialLogo={selectedForm?.logoUrl}
+        formId={selectedForm?.id}
         onSave={handleSaveForm}
         onBack={() => setView('home')}
         onPreviewSubmit={handlePreviewSubmit}
@@ -208,7 +259,7 @@ function App() {
 
   // Default Authenticated: Dashboard
   return (
-    <HomePage 
+    <HomePage
       forms={forms}
       user={user}
       onCreateForm={handleCreateForm}
@@ -216,6 +267,7 @@ function App() {
       onViewResponses={handleViewResponses}
       onDeleteForm={handleDeleteForm}
       onLogout={handleLogout}
+      onOpenSettings={() => setView('settings')}
     />
   );
 }
