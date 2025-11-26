@@ -26,7 +26,7 @@ router.get('/:formId', authenticateToken, async (req, res) => {
 
     const submissions = result.rows.map(row => ({
       id: row.id.toString(),
-      formId: row.form_id.toString(),
+      formId: row.form_id,
       answers: row.answers,
       submittedAt: row.submitted_at.toISOString()
     }));
@@ -70,7 +70,7 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({
       id: submission.id.toString(),
-      formId: submission.form_id.toString(),
+      formId: submission.form_id,
       answers: submission.answers,
       submittedAt: submission.submitted_at.toISOString()
     });

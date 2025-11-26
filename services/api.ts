@@ -99,10 +99,10 @@ export async function getForms(): Promise<Form[]> {
   return response.json();
 }
 
-export async function createForm(title: string, fields: any[], theme?: any, logoUrl?: string): Promise<Form> {
+export async function createForm(title: string, fields: any[], theme?: any, logoUrl?: string, description?: string): Promise<Form> {
   const response = await fetchWithAuth(`${API_BASE_URL}/forms`, {
     method: 'POST',
-    body: JSON.stringify({ title, fields, theme, logoUrl }),
+    body: JSON.stringify({ title, fields, theme, logoUrl, description }),
   });
 
   if (!response.ok) {
@@ -112,10 +112,10 @@ export async function createForm(title: string, fields: any[], theme?: any, logo
   return response.json();
 }
 
-export async function updateForm(id: string, title: string, fields: any[], theme?: any, logoUrl?: string): Promise<Form> {
+export async function updateForm(id: string, title: string, fields: any[], theme?: any, logoUrl?: string, description?: string): Promise<Form> {
   const response = await fetchWithAuth(`${API_BASE_URL}/forms/${id}`, {
     method: 'PUT',
-    body: JSON.stringify({ title, fields, theme, logoUrl }),
+    body: JSON.stringify({ title, fields, theme, logoUrl, description }),
   });
 
   if (!response.ok) {

@@ -18,7 +18,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, onBack }) => {
     const token = getAuthToken();
     if (!token) return;
 
-    fetch('http://localhost:3001/api/user/settings/gemini', {
+    const apiBaseUrl = `${window.location.origin}/api`;
+    fetch(`${apiBaseUrl}/user/settings/gemini`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
@@ -51,7 +52,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, onBack }) => {
         return;
       }
 
-      const res = await fetch('http://localhost:3001/api/user/settings/gemini', {
+      const apiBaseUrl = `${window.location.origin}/api`;
+      const res = await fetch(`${apiBaseUrl}/user/settings/gemini`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

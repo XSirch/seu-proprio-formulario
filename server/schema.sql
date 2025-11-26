@@ -1,5 +1,8 @@
 -- Schema for SPF (Seu Próprio Formulário) database
 
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
@@ -15,9 +18,10 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Forms table
 CREATE TABLE IF NOT EXISTS forms (
-  id SERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   title VARCHAR(500) NOT NULL,
+  description TEXT,
   fields JSONB NOT NULL DEFAULT '[]',
   theme JSONB,
   logo_url TEXT,
@@ -29,7 +33,7 @@ CREATE TABLE IF NOT EXISTS forms (
 -- Submissions table
 CREATE TABLE IF NOT EXISTS submissions (
   id SERIAL PRIMARY KEY,
-  form_id INTEGER NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
+  form_id UUID NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
   answers JSONB NOT NULL DEFAULT '{}',
   submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

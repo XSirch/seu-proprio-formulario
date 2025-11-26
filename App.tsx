@@ -31,7 +31,8 @@ function App() {
   // Check for public form route on mount
   useEffect(() => {
     const path = window.location.pathname;
-    const formMatch = path.match(/^\/form\/(\d+)$/);
+    // Updated regex to match UUIDs (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+    const formMatch = path.match(/^\/form\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i);
 
     if (formMatch) {
       const formId = formMatch[1];
@@ -110,17 +111,17 @@ function App() {
 
   // --- Auth Actions ---
   const handleLoginSuccess = (userData: User) => {
-      setUser(userData);
-      setPendingXp(0);
-      setView('home');
+    setUser(userData);
+    setPendingXp(0);
+    setView('home');
   };
 
   const handleLogout = () => {
-      api.clearAuthToken();
-      setUser(null);
-      setForms([]);
-      setSubmissions([]);
-      setView('landing');
+    api.clearAuthToken();
+    setUser(null);
+    setForms([]);
+    setSubmissions([]);
+    setView('landing');
   };
 
   // --- App Actions ---
@@ -140,30 +141,30 @@ function App() {
   };
 
   const handleDeleteForm = async (id: string) => {
-      if(window.confirm('Tem certeza que deseja excluir este formulário?')) {
-          try {
-              setLoading(true);
-              await api.deleteForm(id);
-              setForms(prev => prev.filter(f => f.id !== id));
-          } catch (err) {
-              console.error('Failed to delete form:', err);
-              setError('Falha ao excluir formulário');
-          } finally {
-              setLoading(false);
-          }
+    if (window.confirm('Tem certeza que deseja excluir este formulário?')) {
+      try {
+        setLoading(true);
+        await api.deleteForm(id);
+        setForms(prev => prev.filter(f => f.id !== id));
+      } catch (err) {
+        console.error('Failed to delete form:', err);
+        setError('Falha ao excluir formulário');
+      } finally {
+        setLoading(false);
       }
+    }
   };
 
-  const handleSaveForm = async (title: string, fields: FormField[], theme?: FormTheme, logoUrl?: string) => {
+  const handleSaveForm = async (title: string, fields: FormField[], theme?: FormTheme, logoUrl?: string, description?: string) => {
     try {
       setLoading(true);
       if (selectedFormId) {
         // Update existing
-        const updatedForm = await api.updateForm(selectedFormId, title, fields, theme, logoUrl);
+        const updatedForm = await api.updateForm(selectedFormId, title, fields, theme, logoUrl, description);
         setForms(prev => prev.map(f => f.id === selectedFormId ? updatedForm : f));
       } else {
         // Create new
-        const newForm = await api.createForm(title, fields, theme, logoUrl);
+        const newForm = await api.createForm(title, fields, theme, logoUrl, description);
         setForms(prev => [newForm, ...prev]);
       }
       setView('home');
@@ -176,20 +177,20 @@ function App() {
   };
 
   const handlePreviewSubmit = async (answers: Record<string, any>) => {
-      if (selectedFormId) {
-          try {
-              const newSubmission = await api.createSubmission(selectedFormId, answers);
-              setSubmissions(prev => [newSubmission, ...prev]);
-              setForms(prev => prev.map(f => f.id === selectedFormId ? { ...f, responseCount: f.responseCount + 1} : f));
-          } catch (err) {
-              console.error('Failed to submit form:', err);
-          }
+    if (selectedFormId) {
+      try {
+        const newSubmission = await api.createSubmission(selectedFormId, answers);
+        setSubmissions(prev => [newSubmission, ...prev]);
+        setForms(prev => prev.map(f => f.id === selectedFormId ? { ...f, responseCount: f.responseCount + 1 } : f));
+      } catch (err) {
+        console.error('Failed to submit form:', err);
       }
+    }
   }
 
   const handleSignupFromPreview = (earnedXp: number) => {
-      setPendingXp(earnedXp);
-      setView('auth-signup');
+    setPendingXp(earnedXp);
+    setView('auth-signup');
   }
 
   // --- Router Logic ---
@@ -200,24 +201,24 @@ function App() {
   }
 
   if (!user) {
-      if (view === 'auth-login' || view === 'auth-signup') {
-          return (
-              <AuthPage
-                  type={view === 'auth-login' ? 'login' : 'signup'}
-                  pendingXp={pendingXp}
-                  onAuthSuccess={handleLoginSuccess}
-                  onSwitchMode={(mode) => setView(mode === 'login' ? 'auth-login' : 'auth-signup')}
-                  onBack={() => setView('landing')}
-              />
-          );
-      }
-      // Default fallback for unauthenticated is Landing
+    if (view === 'auth-login' || view === 'auth-signup') {
       return (
-        <LandingPage
-            onStart={() => setView('auth-signup')}
-            onLogin={() => setView('auth-login')}
+        <AuthPage
+          type={view === 'auth-login' ? 'login' : 'signup'}
+          pendingXp={pendingXp}
+          onAuthSuccess={handleLoginSuccess}
+          onSwitchMode={(mode) => setView(mode === 'login' ? 'auth-login' : 'auth-signup')}
+          onBack={() => setView('landing')}
         />
       );
+    }
+    // Default fallback for unauthenticated is Landing
+    return (
+      <LandingPage
+        onStart={() => setView('auth-signup')}
+        onLogin={() => setView('auth-login')}
+      />
+    );
   }
 
   // Authenticated Routes
@@ -235,6 +236,7 @@ function App() {
       <FormBuilder
         initialFields={selectedForm ? selectedForm.fields : [INITIAL_FIELDS[0]]}
         initialTitle={selectedForm ? selectedForm.title : 'Meu Novo Formulário'}
+        initialDescription={selectedForm?.description}
         initialTheme={selectedForm?.theme}
         initialLogo={selectedForm?.logoUrl}
         formId={selectedForm?.id}
@@ -249,7 +251,7 @@ function App() {
 
   if (view === 'responses' && selectedForm) {
     return (
-      <ResponseViewer 
+      <ResponseViewer
         form={selectedForm}
         submissions={submissions.filter(s => s.formId === selectedForm.id)}
         onBack={() => setView('home')}

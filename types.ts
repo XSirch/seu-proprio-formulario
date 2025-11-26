@@ -34,6 +34,7 @@ export interface FormTheme {
 export interface Form {
   id: string;
   title: string;
+  description?: string;
   createdAt: string;
   fields: FormField[];
   responseCount: number;
@@ -49,22 +50,22 @@ export interface Submission {
 }
 
 export interface User {
-    id: string;
-    name: string;
-    email: string;
-    avatar?: string;
-    xp: number;
-    level: number;
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  xp: number;
+  level: number;
 }
 
 export const calculateLevel = (xp: number): number => {
-    // Simple formula: Level increases every 1000 XP
-    return Math.floor(xp / 1000) + 1;
+  // Simple formula: Level increases every 1000 XP
+  return Math.floor(xp / 1000) + 1;
 };
 
 export const getXpProgress = (xp: number): number => {
-    // Returns percentage (0-100) towards next level
-    return (xp % 1000) / 10;
+  // Returns percentage (0-100) towards next level
+  return (xp % 1000) / 10;
 };
 
 export const INITIAL_FIELDS: FormField[] = [

@@ -8,13 +8,14 @@ const router = express.Router();
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, title, fields, theme, logo_url, response_count, created_at FROM forms WHERE user_id = $1 ORDER BY created_at DESC',
+      'SELECT id, title, description, fields, theme, logo_url, response_count, created_at FROM forms WHERE user_id = $1 ORDER BY created_at DESC',
       [req.user.userId]
     );
 
     const forms = result.rows.map(row => ({
-      id: row.id.toString(),
+      id: row.id,
       title: row.title,
+      description: row.description,
       fields: row.fields,
       theme: row.theme,
       logoUrl: row.logo_url,
@@ -32,22 +33,23 @@ router.get('/', authenticateToken, async (req, res) => {
 // POST /api/forms - Create new form
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { title, fields, theme, logoUrl } = req.body;
+    const { title, fields, theme, logoUrl, description } = req.body;
 
     if (!title || !fields) {
       return res.status(400).json({ error: 'Title and fields are required' });
     }
 
     const result = await pool.query(
-      'INSERT INTO forms (user_id, title, fields, theme, logo_url) VALUES ($1, $2, $3, $4, $5) RETURNING id, title, fields, theme, logo_url, response_count, created_at',
-      [req.user.userId, title, JSON.stringify(fields), theme ? JSON.stringify(theme) : null, logoUrl || null]
+      'INSERT INTO forms (user_id, title, description, fields, theme, logo_url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, title, description, fields, theme, logo_url, response_count, created_at',
+      [req.user.userId, title, description || null, JSON.stringify(fields), theme ? JSON.stringify(theme) : null, logoUrl || null]
     );
 
     const form = result.rows[0];
 
     res.status(201).json({
-      id: form.id.toString(),
+      id: form.id,
       title: form.title,
+      description: form.description,
       fields: form.fields,
       theme: form.theme,
       logoUrl: form.logo_url,
@@ -64,28 +66,37 @@ router.post('/', authenticateToken, async (req, res) => {
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, fields, theme, logoUrl } = req.body;
+    const { title, fields, theme, logoUrl, description } = req.body;
+
+    if (!title || !fields) {
+      return res.status(400).json({ error: 'Title and fields are required' });
+    }
 
     // Verify ownership
     const ownerCheck = await pool.query(
-      'SELECT id FROM forms WHERE id = $1 AND user_id = $2',
-      [id, req.user.userId]
+      'SELECT user_id FROM forms WHERE id = $1',
+      [id]
     );
 
     if (ownerCheck.rows.length === 0) {
-      return res.status(404).json({ error: 'Form not found or access denied' });
+      return res.status(404).json({ error: 'Form not found' });
+    }
+
+    if (ownerCheck.rows[0].user_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Not authorized to update this form' });
     }
 
     const result = await pool.query(
-      'UPDATE forms SET title = $1, fields = $2, theme = $3, logo_url = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5 RETURNING id, title, fields, theme, logo_url, response_count, created_at',
-      [title, JSON.stringify(fields), theme ? JSON.stringify(theme) : null, logoUrl || null, id]
+      'UPDATE forms SET title = $1, description = $2, fields = $3, theme = $4, logo_url = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 RETURNING id, title, description, fields, theme, logo_url, response_count, created_at',
+      [title, description || null, JSON.stringify(fields), theme ? JSON.stringify(theme) : null, logoUrl || null, id]
     );
 
     const form = result.rows[0];
 
     res.json({
-      id: form.id.toString(),
+      id: form.id,
       title: form.title,
+      description: form.description,
       fields: form.fields,
       theme: form.theme,
       logoUrl: form.logo_url,
@@ -128,7 +139,7 @@ router.get('/:id/public', async (req, res) => {
     const { id } = req.params;
 
     const result = await pool.query(
-      'SELECT id, title, fields, theme, logo_url FROM forms WHERE id = $1',
+      'SELECT id, title, description, fields, theme, logo_url FROM forms WHERE id = $1',
       [id]
     );
 
@@ -139,8 +150,9 @@ router.get('/:id/public', async (req, res) => {
     const form = result.rows[0];
 
     res.json({
-      id: form.id.toString(),
+      id: form.id,
       title: form.title,
+      description: form.description,
       fields: form.fields,
       theme: form.theme,
       logoUrl: form.logo_url

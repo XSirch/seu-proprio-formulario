@@ -21,8 +21,9 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ formId }) => {
   const loadForm = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:3001/api/forms/${formId}/public`);
-      
+      const apiBaseUrl = `${window.location.origin}/api`;
+      const response = await fetch(`${apiBaseUrl}/forms/${formId}/public`);
+
       if (!response.ok) {
         throw new Error('Formulário não encontrado');
       }
@@ -38,7 +39,8 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ formId }) => {
 
   const handleSubmit = async (answers: Record<string, any>) => {
     try {
-      const response = await fetch('http://localhost:3001/api/submissions', {
+      const apiBaseUrl = `${window.location.origin}/api`;
+      const response = await fetch(`${apiBaseUrl}/submissions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ formId, answers }),
@@ -96,11 +98,13 @@ export const PublicFormView: React.FC<PublicFormViewProps> = ({ formId }) => {
     <LivePreview
       fields={form.fields}
       title={form.title}
+      description={form.description}
       theme={form.theme}
       logoUrl={form.logoUrl}
-      onClose={() => {}}
+      onClose={() => { }}
       onSubmit={handleSubmit}
       isUserLoggedIn={false}
+      isPublicView={true}
     />
   );
 };
