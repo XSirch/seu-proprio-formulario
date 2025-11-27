@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.js';
 import formsRoutes from './routes/forms.js';
 import submissionsRoutes from './routes/submissions.js';
 import userSettingsRoutes from './routes/userSettings.js';
+import uploadRoutes from './routes/upload.js';
 import { initDatabase } from './init-db.js';
 
 dotenv.config();
@@ -31,8 +32,11 @@ app.use('/api/auth', authRoutes);
 app.use('/api/forms', formsRoutes);
 app.use('/api/submissions', submissionsRoutes);
 app.use('/api/user', userSettingsRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Static frontend (built Vite app) - served from / for non-API routes
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+
 const publicPath = path.resolve(__dirname, 'public');
 app.use(express.static(publicPath));
 

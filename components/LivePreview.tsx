@@ -42,6 +42,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({
     const [xp, setXp] = useState(0);
     const [lastXpGain, setLastXpGain] = useState(0);
     const [showXpGain, setShowXpGain] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
 
     const progress = Math.round(((currentIndex) / fields.length) * 100);
 
@@ -51,8 +52,6 @@ export const LivePreview: React.FC<LivePreviewProps> = ({
         primaryColor: '#14b8a6', // teal-500
         textColor: '#ffffff'
     };
-
-
 
     const currentField = fields[currentIndex];
 
@@ -74,6 +73,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({
         if (currentField.type === 'file' && value && currentField.allowedExtensions && currentField.allowedExtensions.length > 0) {
             const ext = "." + value.split('.').pop()?.toLowerCase();
             // Simple check: checks if any allowed extension matches the end of the filename
+            // Note: value is now a URL, so we check the end of the URL
             const isValid = currentField.allowedExtensions.some(allowed =>
                 value.toLowerCase().endsWith(allowed.toLowerCase())
             );
@@ -165,6 +165,32 @@ export const LivePreview: React.FC<LivePreviewProps> = ({
         if (error) setError(null);
     };
 
+    const handleFileUpload = async (file: File) => {
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (!response.ok) throw new Error('Falha no upload');
+
+            const data = await response.json();
+            handleAnswer(data.url);
+        } catch (err) {
+            console.error(err);
+            setError('Erro ao enviar arquivo. Tente novamente.');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     // Helper to render input based on type
     const renderInput = () => {
         const val = answers[currentField.id] || '';
@@ -198,25 +224,29 @@ export const LivePreview: React.FC<LivePreviewProps> = ({
                     </div>
                 );
             case 'file':
-                const acceptTypes = currentField.allowedExtensions?.join(',');
-                const displayTypes = currentField.allowedExtensions?.map(e => e.replace('.', '').toUpperCase()).join(', ') || "Todos os arquivos";
+                const acceptTypes = currentField.allowedExtensions?.join(',') || '*';
+                const fileUrl = answers[currentField.id];
+                const fileName = fileUrl ? fileUrl.split('/').pop() : '';
 
                 return (
                     <div className="flex justify-center animate-fade-in-up">
                         <div className="w-full max-w-md">
-                            <label
-                                htmlFor={`file-${currentField.id}`}
+                            <div
                                 className={`
-                            relative flex flex-col items-center justify-center w-full h-48 rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-300
-                            ${val
-                                        ? 'bg-white/10 border-current'
-                                        : `bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/40 ${error ? 'border-red-400' : ''}`
-                                    }
-                        `}
+                                    relative flex flex-col items-center justify-center w-full h-48 rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-300
+                                    ${isUploading ? 'opacity-50 cursor-wait' : 'hover:border-brand-500 hover:text-brand-500'}
+                                    ${val ? 'bg-white/10 border-current' : `bg-white/5 border-white/20 ${error ? 'border-red-400' : ''}`}
+                                `}
                                 style={{ borderColor: val ? currentTheme.primaryColor : undefined }}
+                                onClick={() => !isUploading && document.getElementById(`file-${currentField.id}`)?.click()}
                             >
                                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    {val ? (
+                                    {isUploading ? (
+                                        <>
+                                            <Icons.Sparkles className="w-10 h-10 mb-3 animate-spin text-brand-500" />
+                                            <p className="mb-2 text-sm font-medium text-slate-400">Enviando arquivo...</p>
+                                        </>
+                                    ) : val ? (
                                         <>
                                             <div
                                                 className="w-12 h-12 rounded-full flex items-center justify-center mb-3 text-white animate-bounce-short"
@@ -225,9 +255,10 @@ export const LivePreview: React.FC<LivePreviewProps> = ({
                                                 <Icons.Check className="w-6 h-6" />
                                             </div>
                                             <p className="mb-2 text-lg font-medium break-all px-4 text-center" style={{ color: currentTheme.textColor }}>
-                                                {val}
+                                                Arquivo Enviado!
                                             </p>
-                                            <p className="text-xs opacity-70" style={{ color: currentTheme.textColor }}>Clique para alterar</p>
+                                            <p className="text-xs opacity-70 mb-2" style={{ color: currentTheme.textColor }}>{fileName}</p>
+                                            <p className="text-xs opacity-50" style={{ color: currentTheme.textColor }}>Clique para alterar</p>
                                         </>
                                     ) : (
                                         <>
@@ -235,9 +266,11 @@ export const LivePreview: React.FC<LivePreviewProps> = ({
                                             <p className="mb-2 text-sm" style={{ color: currentTheme.textColor }}>
                                                 <span className="font-semibold">Clique para enviar</span> ou arraste
                                             </p>
-                                            <p className="text-xs opacity-50 text-center px-4" style={{ color: currentTheme.textColor }}>
-                                                {displayTypes}
-                                            </p>
+                                            {currentField.allowedExtensions && (
+                                                <p className="text-xs opacity-50 text-center px-4" style={{ color: currentTheme.textColor }}>
+                                                    {currentField.allowedExtensions.join(', ')}
+                                                </p>
+                                            )}
                                         </>
                                     )}
                                 </div>
@@ -249,12 +282,25 @@ export const LivePreview: React.FC<LivePreviewProps> = ({
                                     onChange={(e) => {
                                         const file = e.target.files?.[0];
                                         if (file) {
-                                            // Validation happens here briefly or in next step
-                                            handleAnswer(file.name);
+                                            // Validate extension before uploading
+                                            if (currentField.allowedExtensions && currentField.allowedExtensions.length > 0) {
+                                                const fileExt = "." + file.name.split('.').pop()?.toLowerCase();
+                                                const isValid = currentField.allowedExtensions.some(allowed =>
+                                                    fileExt.endsWith(allowed.toLowerCase())
+                                                );
+
+                                                if (!isValid) {
+                                                    setError(`Tipo de arquivo inválido. Permitidos: ${currentField.allowedExtensions.join(', ')}`);
+                                                    return;
+                                                }
+                                            }
+
+                                            handleFileUpload(file);
                                         }
                                     }}
+                                    disabled={isUploading}
                                 />
-                            </label>
+                            </div>
                         </div>
                     </div>
                 );
